@@ -14,8 +14,26 @@ export class StubGenerator {
   private stubsDir: string
   
   constructor() {
-    // Stubs are located relative to this file
-    this.stubsDir = path.resolve(__dirname, '../../stubs')
+    // Find stubs directory by looking up from the current file location
+    // This works both in development (src/) and production (dist/)
+    let currentDir = __dirname
+    let stubsDir = null
+    
+    // Look up the directory tree to find the stubs folder
+    while (currentDir !== path.dirname(currentDir)) {
+      const potentialStubsDir = path.join(currentDir, 'stubs')
+      if (fs.existsSync(potentialStubsDir)) {
+        stubsDir = potentialStubsDir
+        break
+      }
+      currentDir = path.dirname(currentDir)
+    }
+    
+    if (!stubsDir) {
+      throw new Error('Could not locate stubs directory')
+    }
+    
+    this.stubsDir = stubsDir
   }
   
   /**
