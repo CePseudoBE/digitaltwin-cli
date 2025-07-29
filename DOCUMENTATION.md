@@ -170,6 +170,8 @@ Generated files follow consistent patterns:
 
 ### Validation Logic
 
+The CLI automatically detects Digital Twin projects created with [create-digitaltwin](https://github.com/CePseudoBE/create-digitaltwin):
+
 ```typescript
 export class ProjectDetector {
   async isDigitalTwinProject(cwd: string): Promise<boolean> {
@@ -188,6 +190,8 @@ export class ProjectDetector {
   }
 }
 ```
+
+Projects created with `create-digitaltwin` automatically include `digitaltwin-cli` as a dev dependency and provide the `dt.js` wrapper.
 
 ## Component Types
 
@@ -309,11 +313,14 @@ export class MyAssetsManager extends AssetsManager {
 ### Manual Testing
 
 ```bash
-# Test in a digitaltwin project
+# Test in a digitaltwin project created with create-digitaltwin
 node dt make:collector TestCollector --dry-run
 node dt make:handler TestHandler --method post
 node dt make:harvester TestHarvester --source test-collector
 node dt make:assets-manager TestAssets --content-type "image/png"
+
+# Or test with globally installed CLI
+dt make:collector TestCollector --dry-run
 ```
 
 ### Validation

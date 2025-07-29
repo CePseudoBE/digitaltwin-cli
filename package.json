@@ -1,6 +1,6 @@
 {
   "name": "digitaltwin-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CLI tools for Digital Twin projects - generate components, manage projects",
   "license": "MIT",
   "author": "Hoffmann Axel",

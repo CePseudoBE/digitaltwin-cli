@@ -23,18 +23,18 @@ export abstract class BaseCommand {
   
   // Helper methods for consistent CLI output
   protected success(message: string): void {
-    console.log(chalk.green('✅'), message)
+    console.log(chalk.green('✓'), message)
   }
   
   protected error(message: string): void {
-    console.error(chalk.red('❌'), message)
+    console.error(chalk.red('✗'), message)
   }
   
   protected info(message: string): void {
-    console.log(chalk.blue('ℹ️'), message)
+    console.log(chalk.blue('i'), message)
   }
   
   protected warning(message: string): void {
-    console.log(chalk.yellow('⚠️'), message)
+    console.log(chalk.yellow('!'), message)
   }
 }

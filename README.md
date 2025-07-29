@@ -2,7 +2,7 @@
 
 CLI tools for Digital Twin projects - generate components, manage projects with ease.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -12,21 +12,29 @@ npm install -g digitaltwin-cli
 
 ### Usage in a Digital Twin project
 
+In projects created with [create-digitaltwin](https://github.com/CePseudoBE/create-digitaltwin), use the included `dt.js` wrapper:
+
 ```bash
 # Generate a new collector
-dt make:collector WeatherCollector --description "Collects weather data"
+node dt make:collector WeatherCollector --description "Collects weather data"
 
 # Generate a new handler with POST method
-dt make:handler ApiHandler --method post --description "Handles API requests"
+node dt make:handler ApiHandler --method post --description "Handles API requests"
 
 # Generate a new harvester
-dt make:harvester DataProcessor --source weather-collector --description "Processes weather data"
+node dt make:harvester DataProcessor --source weather-collector --description "Processes weather data"
 
 # Generate a new assets manager
-dt make:assets-manager ImageManager --content-type "image/jpeg"
+node dt make:assets-manager ImageManager --content-type "image/jpeg"
 ```
 
-## 📋 Commands
+Or use the CLI directly if installed globally:
+
+```bash
+dt make:collector WeatherCollector --description "Collects weather data"
+```
+
+## Commands
 
 ### `make:collector <name>`
 
@@ -110,7 +118,7 @@ dt make:assets-manager ImageManager \
   --description "Manages JPEG image uploads"
 ```
 
-## 🏗️ Generated Files
+## Generated Files
 
 All components are generated in `src/components/` with the following naming convention:
 - Collectors: `{name}_collector.ts`
@@ -118,15 +126,22 @@ All components are generated in `src/components/` with the following naming conv
 - Harvesters: `{name}_harvester.ts`
 - Assets Managers: `{name}_assets_manager.ts`
 
-## 📁 Project Structure
+## Project Structure
 
-digitaltwin-cli works with projects created using `create-digitaltwin`. The CLI automatically:
+digitaltwin-cli works with projects created using [create-digitaltwin](https://github.com/CePseudoBE/create-digitaltwin). The CLI automatically:
 - Detects if you're in a Digital Twin project
 - Validates project structure
 - Generates TypeScript files with proper imports
 - Provides helpful reminders about adding components to your engine configuration
 
-## 🛠️ Development
+When you create a project with `create-digitaltwin`, a `dt.js` wrapper is automatically generated that calls `digitaltwin-cli`, making component generation seamless:
+
+```bash
+# In projects created with create-digitaltwin
+node dt make:collector MyCollector
+```
+
+## Development
 
 ```bash
 # Clone the repository
@@ -143,12 +158,12 @@ npm run build
 npm link
 ```
 
-## 📚 Related Projects
+## Related Projects
 
 - [digitaltwin-core](https://github.com/CePseudoBE/digital-twin-core) - Core framework
 - [create-digitaltwin](https://github.com/CePseudoBE/create-digitaltwin) - Project generator
 
-## 📄 License
+## License
 
 MIT © Hoffmann Axel
 
