@@ -21,7 +21,7 @@ export class {{ className }} extends Harvester {
   
   async harvest(
     sourceData: DataRecord | DataRecord[],
-    dependenciesData: Record<string, DataRecord | DataRecord[]>
+    dependenciesData: Record<string, DataRecord | DataRecord[] | null>
   ): Promise<Buffer> {
     // TODO: Implement your data harvesting/processing logic here
     // sourceData contains the data from the source collector
