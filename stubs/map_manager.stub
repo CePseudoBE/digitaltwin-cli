@@ -1,0 +1,27 @@
+import { MapManager } from 'digitaltwin-core/components'
+import type { ComponentConfiguration } from 'digitaltwin-core/components'
+
+/**
+ * {{DESCRIPTION}}
+ * 
+ * Specialized manager for handling map layer data.
+ * Automatically processes JSON layer uploads and extracts layer metadata.
+ * 
+ * Generated with digitaltwin-cli
+ */
+export class {{CLASS_NAME}} extends MapManager {
+    /**
+     * Returns the configuration for this map manager.
+     * 
+     * @returns {ComponentConfiguration} Component configuration
+     */
+    getConfiguration(): ComponentConfiguration {
+        return {
+            name: '{{NAME}}',
+            description: '{{DESCRIPTION}}',
+            contentType: 'application/json',
+            extension: '.json',
+            tags: ['map', 'layer', 'geojson', 'assets']
+        }
+    }
+}

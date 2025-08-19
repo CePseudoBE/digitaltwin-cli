@@ -30,6 +30,8 @@ export class CommandRegistry {
     const { MakeHandlerCommand } = await import('../commands/make/make_handler_command.js')
     const { MakeHarvesterCommand } = await import('../commands/make/make_harvester_command.js')
     const { MakeAssetsManagerCommand } = await import('../commands/make/make_assets_manager_command.js')
+    const { MakeTilesetManagerCommand } = await import('../commands/make/make_tileset_manager_command.js')
+    const { MakeMapManagerCommand } = await import('../commands/make/make_map_manager_command.js')
     
     return [
       // Make commands
@@ -37,6 +39,8 @@ export class CommandRegistry {
       new MakeHandlerCommand(this.services),
       new MakeHarvesterCommand(this.services),
       new MakeAssetsManagerCommand(this.services),
+      new MakeTilesetManagerCommand(this.services),
+      new MakeMapManagerCommand(this.services),
       
       // Other commands will be added here
       // new ServeCommand(this.services),
