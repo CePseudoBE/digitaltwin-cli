@@ -1,63 +1,70 @@
-import { Command } from 'commander'
-import { BaseMakeCommand } from './base_make_command.js'
+import { args, flags } from '@adonisjs/ace'
+import { BaseCommand } from '../base_command.js'
 import { StringUtils } from '../../utils/string_utils.js'
 import path from 'path'
 
-export class MakeAssetsManagerCommand extends BaseMakeCommand {
-  readonly name = 'make:assets-manager'
-  readonly description = 'Generate a new assets manager component'
-  readonly componentType = 'AssetsManager'
-  readonly stubName = 'assets_manager'
-  
-  setupCommand(command: Command): Command {
-    return super.setupCommand(command)
-      .option('-d, --description <description>', 'Description of the assets manager')
-      .option('-t, --tags <tags>', 'Comma-separated tags', (value) => value.split(',').map(t => t.trim()))
-      .option('--endpoint <endpoint>', 'Custom endpoint name (defaults to kebab-case of name)')
-      .option('--content-type <type>', 'MIME type for the assets (e.g., image/jpeg, model/gltf-binary)', 'application/octet-stream')
-  }
-  
-  protected async generateComponent(name: string, options: any): Promise<void> {
-    const projectDetector = this.services.get('projectDetector') as any
-    const stubGenerator = this.services.get('stubGenerator') as any
-    
-    // Validate we're in a digitaltwin project
-    await projectDetector.validateProject()
-    
-    // Get project info
-    const projectInfo = await projectDetector.getProjectInfo()
-    if (!projectInfo) {
-      throw new Error('Could not read project information')
+export class MakeAssetsManagerCommand extends BaseCommand {
+  static commandName = 'make:assets-manager'
+  static description = 'Generate a new assets manager component'
+
+  @args.string({ description: 'Component name' })
+  declare name: string
+
+  @flags.string({ description: 'Description of the assets manager', flagName: 'description', alias: 'd' })
+  declare componentDescription: string | undefined
+
+  @flags.string({ description: 'Content type (e.g., image/jpeg, application/pdf)', flagName: 'content-type', alias: 'c' })
+  declare contentType: string | undefined
+
+  @flags.string({ description: 'Custom endpoint name', flagName: 'endpoint' })
+  declare endpoint: string | undefined
+
+  @flags.boolean({ description: 'Overwrite existing files', flagName: 'force' })
+  declare force: boolean
+
+  @flags.boolean({ description: 'Show what would be generated without creating files', flagName: 'dry-run' })
+  declare dryRun: boolean
+
+  async run(): Promise<void> {
+    try {
+      await this.projectDetector.validateProject()
+      const projectInfo = await this.projectDetector.getProjectInfo()
+
+      if (!projectInfo) {
+        this.logger.error('Could not read project information')
+        return
+      }
+
+      const endpointName = this.endpoint || StringUtils.toKebabCase(this.name)
+      const mimeType = this.contentType || 'application/octet-stream'
+
+      const templateData = {
+        name: this.name,
+        description: this.componentDescription || `Assets manager for ${this.name}`,
+        contentType: mimeType,
+        tags: [],
+        endpoint: endpointName,
+      }
+
+      if (this.dryRun) {
+        this.info(`Would generate assets manager: ${StringUtils.toSnakeCase(this.name)}_assets_manager.ts`)
+        return
+      }
+
+      const content = await this.stubGenerator.generate('assets_manager', templateData)
+      const componentsDir = path.join(process.cwd(), projectInfo.srcDir, 'components')
+      const fileName = `${StringUtils.toSnakeCase(this.name)}_assets_manager.ts`
+
+      const filePath = await this.stubGenerator.writeFile(content, fileName, componentsDir, { force: this.force })
+
+      this.success(`Generated assets manager: ${path.relative(process.cwd(), filePath)}`)
+      this.info(`Content type: ${mimeType}`)
+      this.info(`Assets will be available at GET /${endpointName}`)
+      this.info(`Upload endpoint: POST /${endpointName}/upload`)
+      this.info('Remember to add it to your DigitalTwinEngine configuration!')
+    } catch (error: any) {
+      this.logger.error(`Failed to generate assets manager: ${error.message}`)
+      this.exitCode = 1
     }
-    
-    // Prepare template data
-    const templateData = {
-      name,
-      description: options.description || `Assets manager for ${name}`,
-      tags: options.tags || [],
-      endpoint: options.endpoint || StringUtils.toKebabCase(name),
-      contentType: options.contentType
-    }
-    
-    // Generate content
-    const content = await stubGenerator.generate(this.stubName, templateData)
-    
-    // Determine file path
-    const componentsDir = path.join(process.cwd(), projectInfo.srcDir, 'components')
-    const fileName = `${StringUtils.toSnakeCase(name)}_assets_manager.ts`
-    
-    // Write file
-    const filePath = await stubGenerator.writeFile(
-      content, 
-      fileName, 
-      componentsDir,
-      { force: options.force }
-    )
-    
-    this.success(`Generated assets manager: ${path.relative(process.cwd(), filePath)}`)
-    this.info(`Content type: ${options.contentType}`)
-    this.info(`Assets will be available at GET /${templateData.endpoint}`)
-    this.info(`Upload endpoint: POST /${templateData.endpoint}/upload`)
-    this.info(`Remember to add it to your DigitalTwinEngine configuration!`)
   }
 }

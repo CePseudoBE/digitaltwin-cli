@@ -1,27 +1,20 @@
+{{#expect name, className, endpoint, description}}
 import { TilesetManager } from 'digitaltwin-core/components'
 import type { ComponentConfiguration } from 'digitaltwin-core/components'
 
+{{#if description}}
 /**
- * {{DESCRIPTION}}
- * 
- * Specialized manager for handling tileset ZIP files.
- * Automatically processes ZIP uploads and extracts tileset metadata.
- * 
- * Generated with digitaltwin-cli
+ * {{ description }}
  */
-export class {{CLASS_NAME}} extends TilesetManager {
-    /**
-     * Returns the configuration for this tileset manager.
-     * 
-     * @returns {ComponentConfiguration} Component configuration
-     */
-    getConfiguration(): ComponentConfiguration {
-        return {
-            name: '{{NAME}}',
-            description: '{{DESCRIPTION}}',
-            contentType: 'application/zip',
-            extension: '.zip',
-            tags: ['tileset', 'assets', 'zip']
-        }
+{{/if}}
+export class {{ className }} extends TilesetManager {
+  getConfiguration(): ComponentConfiguration {
+    return {
+      name: '{{ endpoint }}',
+      description: '{{ description }}',
+      contentType: 'application/zip',
+      extension: '.zip',
+      tags: ['tileset', 'assets', 'zip']
     }
+  }
 }

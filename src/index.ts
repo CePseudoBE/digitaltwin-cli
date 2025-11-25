@@ -1,12 +1,17 @@
 // Main exports for digitaltwin-cli package
 
-// Core CLI functionality
-export { ServiceContainer } from './services/service_container.js'
-export { CommandRegistry } from './cli/command_registry.js'
-
 // Base classes for extending
 export { BaseCommand } from './commands/base_command.js'
-export { BaseMakeCommand } from './commands/make/base_make_command.js'
 
-// Note: CLI execution is handled by cli.ts, not exported
-// This index.ts is for programmatic usage if needed
+// Utilities
+export { StubGenerator } from './generators/stub_generator.js'
+export { ProjectDetector } from './utils/project_detector.js'
+export { StringUtils } from './utils/string_utils.js'
+
+// Commands (for programmatic usage)
+export { MakeCollectorCommand } from './commands/make/make_collector_command.js'
+export { MakeHandlerCommand } from './commands/make/make_handler_command.js'
+export { MakeHarvesterCommand } from './commands/make/make_harvester_command.js'
+export { MakeAssetsManagerCommand } from './commands/make/make_assets_manager_command.js'
+export { MakeTilesetManagerCommand } from './commands/make/make_tileset_manager_command.js'
+export { MakeMapManagerCommand } from './commands/make/make_map_manager_command.js'

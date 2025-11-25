@@ -1,61 +1,63 @@
-import { Command } from 'commander'
-import { BaseMakeCommand } from './base_make_command.js'
+import { args, flags } from '@adonisjs/ace'
+import { BaseCommand } from '../base_command.js'
 import { StringUtils } from '../../utils/string_utils.js'
 import path from 'path'
 
-export class MakeMapManagerCommand extends BaseMakeCommand {
-  readonly name = 'make:map-manager'
-  readonly description = 'Generate a new map manager component for handling map layer data'
-  readonly componentType = 'MapManager'
-  readonly stubName = 'map_manager'
-  
-  setupCommand(command: Command): Command {
-    return super.setupCommand(command)
-      .option('-d, --description <description>', 'Description of the map manager')
-      .option('-t, --tags <tags>', 'Comma-separated tags', (value) => value.split(',').map(t => t.trim()))
-      .option('--endpoint <endpoint>', 'Custom endpoint name (defaults to kebab-case of name)')
-  }
-  
-  protected async generateComponent(name: string, options: any): Promise<void> {
-    const projectDetector = this.services.get('projectDetector') as any
-    const stubGenerator = this.services.get('stubGenerator') as any
-    
-    // Validate we're in a digitaltwin project
-    await projectDetector.validateProject()
-    
-    // Get project info
-    const projectInfo = await projectDetector.getProjectInfo()
-    if (!projectInfo) {
-      throw new Error('Could not read project information')
+export class MakeMapManagerCommand extends BaseCommand {
+  static commandName = 'make:map-manager'
+  static description = 'Generate a new map manager component for handling map layer data'
+
+  @args.string({ description: 'Component name' })
+  declare name: string
+
+  @flags.string({ description: 'Description of the map manager', flagName: 'description', alias: 'd' })
+  declare componentDescription: string | undefined
+
+  @flags.string({ description: 'Custom endpoint name', flagName: 'endpoint' })
+  declare endpoint: string | undefined
+
+  @flags.boolean({ description: 'Overwrite existing files', flagName: 'force' })
+  declare force: boolean
+
+  @flags.boolean({ description: 'Show what would be generated without creating files', flagName: 'dry-run' })
+  declare dryRun: boolean
+
+  async run(): Promise<void> {
+    try {
+      await this.projectDetector.validateProject()
+      const projectInfo = await this.projectDetector.getProjectInfo()
+
+      if (!projectInfo) {
+        this.logger.error('Could not read project information')
+        return
+      }
+
+      const endpointName = this.endpoint || StringUtils.toKebabCase(this.name)
+
+      const templateData = {
+        name: this.name,
+        description: this.componentDescription || `Map manager for ${this.name}`,
+        endpoint: endpointName,
+      }
+
+      if (this.dryRun) {
+        this.info(`Would generate map manager: ${StringUtils.toSnakeCase(this.name)}_map_manager.ts`)
+        return
+      }
+
+      const content = await this.stubGenerator.generate('map_manager', templateData)
+      const componentsDir = path.join(process.cwd(), projectInfo.srcDir, 'components')
+      const fileName = `${StringUtils.toSnakeCase(this.name)}_map_manager.ts`
+
+      const filePath = await this.stubGenerator.writeFile(content, fileName, componentsDir, { force: this.force })
+
+      this.success(`Generated map manager: ${path.relative(process.cwd(), filePath)}`)
+      this.info(`Map layers will be available at GET /${endpointName}`)
+      this.info(`Upload endpoint: POST /${endpointName}/upload (accepts JSON layer objects)`)
+      this.info('Remember to add it to your DigitalTwinEngine configuration!')
+    } catch (error: any) {
+      this.logger.error(`Failed to generate map manager: ${error.message}`)
+      this.exitCode = 1
     }
-    
-    // Prepare template data
-    const templateData = {
-      name,
-      description: options.description || `Map manager for ${name}`,
-      tags: options.tags || ['map', 'layer', 'geojson', 'assets'],
-      endpoint: options.endpoint || StringUtils.toKebabCase(name)
-    }
-    
-    // Generate content
-    const content = await stubGenerator.generate(this.stubName, templateData)
-    
-    // Determine file path
-    const componentsDir = path.join(process.cwd(), projectInfo.srcDir, 'components')
-    const fileName = `${StringUtils.toSnakeCase(name)}_map_manager.ts`
-    
-    // Write file
-    const filePath = await stubGenerator.writeFile(
-      content, 
-      fileName, 
-      componentsDir,
-      { force: options.force }
-    )
-    
-    this.success(`Generated map manager: ${path.relative(process.cwd(), filePath)}`)
-    this.info(`Map layers will be available at GET /${templateData.endpoint}`)
-    this.info(`Upload endpoint: POST /${templateData.endpoint}/upload (accepts JSON layer objects)`)
-    this.info(`The manager will automatically detect GeoJSON and other layer formats`)
-    this.info(`Remember to add it to your DigitalTwinEngine configuration!`)
   }
 }

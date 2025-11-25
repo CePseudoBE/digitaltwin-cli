@@ -1,60 +1,64 @@
-import { Command } from 'commander'
-import { BaseMakeCommand } from './base_make_command.js'
+import { args, flags } from '@adonisjs/ace'
+import { BaseCommand } from '../base_command.js'
 import { StringUtils } from '../../utils/string_utils.js'
 import path from 'path'
 
-export class MakeCollectorCommand extends BaseMakeCommand {
-  readonly name = 'make:collector'
-  readonly description = 'Generate a new collector component'
-  readonly componentType = 'Collector'
-  readonly stubName = 'collector'
-  
-  setupCommand(command: Command): Command {
-    return super.setupCommand(command)
-      .option('-d, --description <description>', 'Description of the collector')
-      .option('-s, --schedule <schedule>', 'Cron schedule (default: every 5 minutes)')
-      .option('-t, --tags <tags>', 'Comma-separated tags', (value) => value.split(',').map(t => t.trim()))
-      .option('--endpoint <endpoint>', 'Custom endpoint name (defaults to kebab-case of name)')
-  }
-  
-  protected async generateComponent(name: string, options: any): Promise<void> {
-    const projectDetector = this.services.get('projectDetector') as any
-    const stubGenerator = this.services.get('stubGenerator') as any
-    
-    // Validate we're in a digitaltwin project
-    await projectDetector.validateProject()
-    
-    // Get project info
-    const projectInfo = await projectDetector.getProjectInfo()
-    if (!projectInfo) {
-      throw new Error('Could not read project information')
+export class MakeCollectorCommand extends BaseCommand {
+  static commandName = 'make:collector'
+  static description = 'Generate a new collector component'
+
+  @args.string({ description: 'Component name' })
+  declare name: string
+
+  @flags.string({ description: 'Description of the collector', flagName: 'description', alias: 'd' })
+  declare componentDescription: string | undefined
+
+  @flags.string({ description: 'Cron schedule', flagName: 'schedule', alias: 's' })
+  declare schedule: string | undefined
+
+  @flags.string({ description: 'Custom endpoint name', flagName: 'endpoint' })
+  declare endpoint: string | undefined
+
+  @flags.boolean({ description: 'Overwrite existing files', flagName: 'force' })
+  declare force: boolean
+
+  @flags.boolean({ description: 'Show what would be generated without creating files', flagName: 'dry-run' })
+  declare dryRun: boolean
+
+  async run(): Promise<void> {
+    try {
+      await this.projectDetector.validateProject()
+      const projectInfo = await this.projectDetector.getProjectInfo()
+
+      if (!projectInfo) {
+        this.logger.error('Could not read project information')
+        return
+      }
+
+      const templateData = {
+        name: this.name,
+        description: this.componentDescription || `Data collector for ${this.name}`,
+        schedule: this.schedule || '0 */5 * * * *',
+        tags: [],
+        endpoint: this.endpoint || StringUtils.toKebabCase(this.name),
+      }
+
+      if (this.dryRun) {
+        this.info(`Would generate collector: ${StringUtils.toSnakeCase(this.name)}_collector.ts`)
+        return
+      }
+
+      const content = await this.stubGenerator.generate('collector', templateData)
+      const componentsDir = path.join(process.cwd(), projectInfo.srcDir, 'components')
+      const fileName = `${StringUtils.toSnakeCase(this.name)}_collector.ts`
+
+      const filePath = await this.stubGenerator.writeFile(content, fileName, componentsDir, { force: this.force })
+
+      this.success(`Generated collector: ${path.relative(process.cwd(), filePath)}`)
+      this.info('Remember to add it to your DigitalTwinEngine configuration!')
+    } catch (error: any) {
+      this.logger.error(`Failed to generate collector: ${error.message}`)
+      this.exitCode = 1
     }
-    
-    // Prepare template data
-    const templateData = {
-      name,
-      description: options.description || `Data collector for ${name}`,
-      schedule: options.schedule || '0 */5 * * * *',
-      tags: options.tags || [],
-      endpoint: options.endpoint,
-    }
-    
-    // Generate content
-    const content = await stubGenerator.generate(this.stubName, templateData)
-    
-    // Determine file path
-    const componentsDir = path.join(process.cwd(), projectInfo.srcDir, 'components')
-    const fileName = `${StringUtils.toSnakeCase(name)}_collector.ts`
-    
-    // Write file
-    const filePath = await stubGenerator.writeFile(
-      content, 
-      fileName, 
-      componentsDir,
-      { force: options.force }
-    )
-    
-    this.success(`Generated collector: ${path.relative(process.cwd(), filePath)}`)
-    this.info(`Remember to add it to your DigitalTwinEngine configuration!`)
   }
 }

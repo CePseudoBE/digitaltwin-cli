@@ -1,61 +1,68 @@
-import { Command } from 'commander'
-import { BaseMakeCommand } from './base_make_command.js'
+import { args, flags } from '@adonisjs/ace'
+import { BaseCommand } from '../base_command.js'
 import { StringUtils } from '../../utils/string_utils.js'
 import path from 'path'
 
-export class MakeHandlerCommand extends BaseMakeCommand {
-  readonly name = 'make:handler'
-  readonly description = 'Generate a new handler component'
-  readonly componentType = 'Handler'
-  readonly stubName = 'handler'
-  
-  setupCommand(command: Command): Command {
-    return super.setupCommand(command)
-      .option('-d, --description <description>', 'Description of the handler')
-      .option('-t, --tags <tags>', 'Comma-separated tags', (value) => value.split(',').map(t => t.trim()))
-      .option('--endpoint <endpoint>', 'Custom endpoint name (defaults to kebab-case of name)')
-      .option('-m, --method <method>', 'HTTP method (get, post, put, delete)', 'get')
-  }
-  
-  protected async generateComponent(name: string, options: any): Promise<void> {
-    const projectDetector = this.services.get('projectDetector') as any
-    const stubGenerator = this.services.get('stubGenerator') as any
-    
-    // Validate we're in a digitaltwin project
-    await projectDetector.validateProject()
-    
-    // Get project info
-    const projectInfo = await projectDetector.getProjectInfo()
-    if (!projectInfo) {
-      throw new Error('Could not read project information')
+export class MakeHandlerCommand extends BaseCommand {
+  static commandName = 'make:handler'
+  static description = 'Generate a new handler component'
+
+  @args.string({ description: 'Component name' })
+  declare name: string
+
+  @flags.string({ description: 'Description of the handler', flagName: 'description', alias: 'd' })
+  declare componentDescription: string | undefined
+
+  @flags.string({ description: 'HTTP method (get, post, put, delete)', flagName: 'method', alias: 'm' })
+  declare method: string | undefined
+
+  @flags.string({ description: 'Custom endpoint name', flagName: 'endpoint' })
+  declare endpoint: string | undefined
+
+  @flags.boolean({ description: 'Overwrite existing files', flagName: 'force' })
+  declare force: boolean
+
+  @flags.boolean({ description: 'Show what would be generated without creating files', flagName: 'dry-run' })
+  declare dryRun: boolean
+
+  async run(): Promise<void> {
+    try {
+      await this.projectDetector.validateProject()
+      const projectInfo = await this.projectDetector.getProjectInfo()
+
+      if (!projectInfo) {
+        this.logger.error('Could not read project information')
+        return
+      }
+
+      const endpointName = this.endpoint || StringUtils.toKebabCase(this.name)
+      const methodName = (this.method || 'get').toLowerCase()
+
+      const templateData = {
+        name: this.name,
+        description: this.componentDescription || `HTTP handler for ${this.name}`,
+        method: methodName,
+        tags: [],
+        endpoint: endpointName,
+      }
+
+      if (this.dryRun) {
+        this.info(`Would generate handler: ${StringUtils.toSnakeCase(this.name)}_handler.ts`)
+        return
+      }
+
+      const content = await this.stubGenerator.generate('handler', templateData)
+      const componentsDir = path.join(process.cwd(), projectInfo.srcDir, 'components')
+      const fileName = `${StringUtils.toSnakeCase(this.name)}_handler.ts`
+
+      const filePath = await this.stubGenerator.writeFile(content, fileName, componentsDir, { force: this.force })
+
+      this.success(`Generated handler: ${path.relative(process.cwd(), filePath)}`)
+      this.info(`Handler will be available at ${methodName.toUpperCase()} /api/${endpointName}`)
+      this.info('Remember to add it to your DigitalTwinEngine configuration!')
+    } catch (error: any) {
+      this.logger.error(`Failed to generate handler: ${error.message}`)
+      this.exitCode = 1
     }
-    
-    // Prepare template data
-    const templateData = {
-      name,
-      description: options.description || `HTTP handler for ${name}`,
-      tags: options.tags || [],
-      endpoint: options.endpoint || StringUtils.toKebabCase(name),
-      method: options.method.toLowerCase()
-    }
-    
-    // Generate content
-    const content = await stubGenerator.generate(this.stubName, templateData)
-    
-    // Determine file path
-    const componentsDir = path.join(process.cwd(), projectInfo.srcDir, 'components')
-    const fileName = `${StringUtils.toSnakeCase(name)}_handler.ts`
-    
-    // Write file
-    const filePath = await stubGenerator.writeFile(
-      content, 
-      fileName, 
-      componentsDir,
-      { force: options.force }
-    )
-    
-    this.success(`Generated handler: ${path.relative(process.cwd(), filePath)}`)
-    this.info(`Handler will be available at ${options.method.toUpperCase()} /api/${templateData.endpoint}`)
-    this.info(`Remember to add it to your DigitalTwinEngine configuration!`)
   }
 }

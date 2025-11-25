@@ -1,40 +1,37 @@
-import { Command } from 'commander'
-import { ServiceContainer } from '../services/service_container.js'
-import chalk from 'chalk'
+import { BaseCommand as AceBaseCommand } from '@adonisjs/ace'
+import { StubGenerator } from '../generators/stub_generator.js'
+import { ProjectDetector } from '../utils/project_detector.js'
 
 /**
  * Base class for all CLI commands providing common functionality
  */
-export abstract class BaseCommand {
-  abstract readonly name: string
-  abstract readonly description: string
-  
-  constructor(protected services: ServiceContainer) {}
-  
-  /**
-   * Execute the command with provided arguments
-   */
-  abstract execute(...args: any[]): Promise<void>
-  
-  /**
-   * Setup the command with Commander.js - arguments, options, etc.
-   */
-  abstract setupCommand(command: Command): Command
-  
-  // Helper methods for consistent CLI output
+export abstract class BaseCommand extends AceBaseCommand {
+  private _stubGenerator?: StubGenerator
+  private _projectDetector?: ProjectDetector
+
+  protected get stubGenerator(): StubGenerator {
+    if (!this._stubGenerator) {
+      this._stubGenerator = new StubGenerator()
+    }
+    return this._stubGenerator
+  }
+
+  protected get projectDetector(): ProjectDetector {
+    if (!this._projectDetector) {
+      this._projectDetector = new ProjectDetector()
+    }
+    return this._projectDetector
+  }
+
   protected success(message: string): void {
-    console.log(chalk.green('✓'), message)
+    this.logger.success(message)
   }
-  
-  protected error(message: string): void {
-    console.error(chalk.red('✗'), message)
-  }
-  
+
   protected info(message: string): void {
-    console.log(chalk.blue('i'), message)
+    this.logger.info(message)
   }
-  
+
   protected warning(message: string): void {
-    console.log(chalk.yellow('!'), message)
+    this.logger.warning(message)
   }
 }

@@ -5,11 +5,18 @@ export class StringUtils {
   /**
    * Convert to PascalCase (ClassNames)
    * api-collector -> ApiCollector
+   * TestCliCollector -> TestCliCollector (preserved)
    */
   static toPascalCase(str: string): string {
-    return str
-      .split(/[-_\s]+/)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    // First, handle camelCase/PascalCase by splitting on uppercase letters
+    const normalized = str
+      .replace(/([a-z])([A-Z])/g, '$1-$2')
+      .replace(/[-_\s]+/g, '-')
+      .toLowerCase()
+
+    return normalized
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join('')
   }
   

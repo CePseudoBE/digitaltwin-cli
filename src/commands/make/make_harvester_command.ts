@@ -1,75 +1,67 @@
-import { Command } from 'commander'
-import { BaseMakeCommand } from './base_make_command.js'
+import { args, flags } from '@adonisjs/ace'
+import { BaseCommand } from '../base_command.js'
 import { StringUtils } from '../../utils/string_utils.js'
 import path from 'path'
 
-export class MakeHarvesterCommand extends BaseMakeCommand {
-  readonly name = 'make:harvester'
-  readonly description = 'Generate a new harvester component'
-  readonly componentType = 'Harvester'
-  readonly stubName = 'harvester'
-  
-  setupCommand(command: Command): Command {
-    return super.setupCommand(command)
-      .option('-d, --description <description>', 'Description of the harvester')
-      .option('-t, --tags <tags>', 'Comma-separated tags', (value) => value.split(',').map(t => t.trim()))
-      .option('--endpoint <endpoint>', 'Custom endpoint name (defaults to kebab-case of name)')
-      .option('--source <source>', 'Source collector to harvest from (required)')
-      .option('--dependencies <deps>', 'Comma-separated list of dependency components', (value) => value.split(',').map(t => t.trim()))
-      .option('--source-range <range>', 'Source range (number of records or time range like "1h", "30m")')
-      .option('--trigger-mode <mode>', 'Trigger mode: on-source or scheduled', 'on-source')
-  }
-  
-  protected async generateComponent(name: string, options: any): Promise<void> {
-    const projectDetector = this.services.get('projectDetector') as any
-    const stubGenerator = this.services.get('stubGenerator') as any
-    
-    // Validate we're in a digitaltwin project
-    await projectDetector.validateProject()
-    
-    // Validate required options
-    if (!options.source) {
-      throw new Error('--source option is required. Specify which collector to harvest from.')
+export class MakeHarvesterCommand extends BaseCommand {
+  static commandName = 'make:harvester'
+  static description = 'Generate a new harvester component'
+
+  @args.string({ description: 'Component name' })
+  declare name: string
+
+  @flags.string({ description: 'Description of the harvester', flagName: 'description', alias: 'd' })
+  declare componentDescription: string | undefined
+
+  @flags.string({ description: 'Source collector name', flagName: 'source', alias: 's' })
+  declare source: string | undefined
+
+  @flags.string({ description: 'Custom endpoint name', flagName: 'endpoint' })
+  declare endpoint: string | undefined
+
+  @flags.boolean({ description: 'Overwrite existing files', flagName: 'force' })
+  declare force: boolean
+
+  @flags.boolean({ description: 'Show what would be generated without creating files', flagName: 'dry-run' })
+  declare dryRun: boolean
+
+  async run(): Promise<void> {
+    try {
+      await this.projectDetector.validateProject()
+      const projectInfo = await this.projectDetector.getProjectInfo()
+
+      if (!projectInfo) {
+        this.logger.error('Could not read project information')
+        return
+      }
+
+      const sourceName = this.source || 'source-collector'
+
+      const templateData = {
+        name: this.name,
+        description: this.componentDescription || `Data harvester for ${this.name}`,
+        sourceCollector: sourceName,
+        tags: [],
+        endpoint: this.endpoint || StringUtils.toKebabCase(this.name),
+      }
+
+      if (this.dryRun) {
+        this.info(`Would generate harvester: ${StringUtils.toSnakeCase(this.name)}_harvester.ts`)
+        return
+      }
+
+      const content = await this.stubGenerator.generate('harvester', templateData)
+      const componentsDir = path.join(process.cwd(), projectInfo.srcDir, 'components')
+      const fileName = `${StringUtils.toSnakeCase(this.name)}_harvester.ts`
+
+      const filePath = await this.stubGenerator.writeFile(content, fileName, componentsDir, { force: this.force })
+
+      this.success(`Generated harvester: ${path.relative(process.cwd(), filePath)}`)
+      this.info(`Harvests from: ${sourceName}`)
+      this.info('Remember to add it to your DigitalTwinEngine configuration!')
+    } catch (error: any) {
+      this.logger.error(`Failed to generate harvester: ${error.message}`)
+      this.exitCode = 1
     }
-    
-    // Get project info
-    const projectInfo = await projectDetector.getProjectInfo()
-    if (!projectInfo) {
-      throw new Error('Could not read project information')
-    }
-    
-    // Prepare template data
-    const templateData = {
-      name,
-      description: options.description || `Data harvester for ${name}`,
-      tags: options.tags || [],
-      endpoint: options.endpoint || StringUtils.toKebabCase(name),
-      sourceCollector: options.source,
-      dependencies: options.dependencies || [],
-      sourceRange: options.sourceRange,
-      triggerMode: options.triggerMode
-    }
-    
-    // Generate content
-    const content = await stubGenerator.generate(this.stubName, templateData)
-    
-    // Determine file path
-    const componentsDir = path.join(process.cwd(), projectInfo.srcDir, 'components')
-    const fileName = `${StringUtils.toSnakeCase(name)}_harvester.ts`
-    
-    // Write file
-    const filePath = await stubGenerator.writeFile(
-      content, 
-      fileName, 
-      componentsDir,
-      { force: options.force }
-    )
-    
-    this.success(`Generated harvester: ${path.relative(process.cwd(), filePath)}`)
-    this.info(`Harvests from: ${options.source}`)
-    if (options.dependencies?.length > 0) {
-      this.info(`Dependencies: ${options.dependencies.join(', ')}`)
-    }
-    this.info(`Remember to add it to your DigitalTwinEngine configuration!`)
   }
 }
