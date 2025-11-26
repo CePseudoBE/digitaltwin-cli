@@ -7,6 +7,7 @@ import { MakeHarvesterCommand } from './commands/make/make_harvester_command.js'
 import { MakeAssetsManagerCommand } from './commands/make/make_assets_manager_command.js'
 import { MakeTilesetManagerCommand } from './commands/make/make_tileset_manager_command.js'
 import { MakeMapManagerCommand } from './commands/make/make_map_manager_command.js'
+import { OpenAPIGenerateCommand } from './commands/openapi/openapi_generate_command.js'
 
 const kernel = Kernel.create()
 
@@ -31,6 +32,7 @@ kernel.addLoader(
     MakeAssetsManagerCommand,
     MakeTilesetManagerCommand,
     MakeMapManagerCommand,
+    OpenAPIGenerateCommand,
   ])
 )
 
